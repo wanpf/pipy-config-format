@@ -1,0 +1,285 @@
+{
+  "listeners": {
+    "listener-01": {
+      "port": 443,
+      "addresses": [
+        "1.1.1.1",
+        "2.2.2.2"
+      ],
+      "protocol": "Can be tcp or udp. Default is tcp",
+      "appProtocol": "http|grpc|mysql",
+      "maxBufferSize": "Maximum socket buffer size when using TCP. Default is 128KB.",
+      "maxPacketSize": "Maximum packet size when using UDP. Default is 16KB.",
+      "maxConnections": "Maximum number of concurrent connections. Default is -1, which means unlimited",
+      "readTimeout": "Timeout duration for reading",
+      "writeTimeout": "Timeout duration for writing",
+      "idleTimeout": "Time in seconds before connection is closed due to no active reading or writing",
+      "transparent": "Set to true to enable transparent proxy mode",
+      "masquerade": "Set to true to change the source address of responding UDP packets to the original destination",
+      "reusePort": "When this flag is set to true, listeners set the SO_REUSEPORT socket option and create one socket for each worker thread. ",
+      "tcpBacklog": "The maximum length a tcp listener’s pending connections queue can grow to. If no value is provided net.core.somaxconn will be used on Linux and 128 otherwise."
+    }
+  },
+  "entryTuples": {
+    "entryTuple-01": {
+      "source": [
+        {
+          "ipRanges": "1.1.1.1/8",
+          "port": 8000
+        }
+      ],
+      "destination": [
+        {
+          "ipRanges": "1.1.1.1/8",
+          "port": 80
+        },
+        {
+          "ipRanges": "1.1.1.2/8",
+          "port": 80
+        }
+      ],
+      "listeners_joinRef": [
+        "listener-01"
+      ]
+    },
+    "entryTuple-egress-02": {
+      "listeners_joinRef": [
+        "listener-01"
+      ]
+    }
+  },
+  "httpServices": {
+    "httpService-01": {
+      "virtualHost": [
+        "a.a.a.a",
+        "b.b.b.b"
+      ],
+      "entryTuples_joinRef": [
+        "entryTuple-01"
+      ],
+      "listeners_joinRef": [
+        "listener-01"
+      ]
+    }
+  },
+  "httpRoutes": {
+    "httpRoute-01": {
+      "path": ".*",
+      "type": "Regex",
+      "headers": null,
+      "methods": null,
+      "allowedServices": null,
+      "clusters": {
+        "cluster-01": 100,
+        "cluster-02": 100
+      },
+      "httpServices_joinRef": [
+        "httpService-01"
+      ]
+    }
+  },
+  "httpPolicies": {
+    "httpPolicy-01": {
+      "retryPolicy": {
+        "retryOn": "5xx",
+        "perTryTimeout": 5,
+        "numRetries": 5,
+        "retryBackoffBaseInterval": 1
+      },
+      "circuitBreaking": {
+        "minRequestAmount": 50,
+        "statTimeWindow": 10,
+        "slowTimeThreshold": 1.001,
+        "slowAmountThreshold": 300,
+        "slowRatioThreshold": 0.3,
+        "errorAmountThreshold": 300,
+        "errorRatioThreshold": 0.15,
+        "degradedTimeWindow": 30,
+        "degradedStatusCode": 409,
+        "degradedResponseContent": "Coming soon .... 0"
+      },
+      "httpRoutes_joinRef": [
+        "httpRoute-01"
+      ]
+    }
+  },
+  "clusters": {
+    "cluster-01": {
+      "lbPolicy": "rr",
+      "appProtocol": "http|grpc|mysql",
+      "endpoints": {
+        "endpoint-01": 50,
+        "endpoint-02": 50
+      },
+      "httpPolicies_joinRef": [
+        "httpPolicy-01"
+      ],
+      "httpRoutes_joinRef": [
+        "httpRoute-01"
+      ],
+      "httpServices_joinRef": [
+        "httpService-01"
+      ],
+      "entryTuples_joinRef": [
+        "entryTuple-01"
+      ],
+      "listeners_joinRef": [
+        "listener-01"
+      ]
+    },
+    "cluster-egress-01": {
+      "lbPolicy": "rr",
+      "appProtocol": "http|grpc|mysql",
+      "endpoints": {
+        "endpoint-egress-01": 100
+      },
+      "entryTuples_joinRef": [
+        "entryTuple-egress-02"
+      ]
+    }
+  },
+  "endpoints": {
+    "endpoint-01": {
+      "address": "1.1.1.1",
+      "port": 443,
+      "protocol": "Can be tcp or udp. Default is tcp",
+      "bufferLimit": "Maximum size of data allowed to stay in buffer due to slow outbound bandwidth. Can be a number in bytes or a string with a unit suffix such as 'k', 'm', 'g' and 't'.",
+      "retryCount": "How many times it should retry connection after a failure, or -1 for the infinite retries. Defaults to 0.",
+      "retryDelay": "Time duration to wait between connection retries. Defaults to 0.",
+      "connectTimeout": "Timeout while connecting. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
+      "readTimeout": "Timeout while reading. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
+      "writeTimeout": "Timeout while writing. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
+      "idleTimeout": "Duration before connection is closed due to no active reading or writing. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to 1 minute."
+    },
+    "endpoint-egress-01": {
+      "protocol": "Can be tcp or udp. Default is tcp",
+      "bufferLimit": "Maximum size of data allowed to stay in buffer due to slow outbound bandwidth. Can be a number in bytes or a string with a unit suffix such as 'k', 'm', 'g' and 't'.",
+      "retryCount": "How many times it should retry connection after a failure, or -1 for the infinite retries. Defaults to 0.",
+      "retryDelay": "Time duration to wait between connection retries. Defaults to 0.",
+      "connectTimeout": "Timeout while connecting. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
+      "readTimeout": "Timeout while reading. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
+      "writeTimeout": "Timeout while writing. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
+      "idleTimeout": "Duration before connection is closed due to no active reading or writing. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to 1 minute."
+    }
+  },
+  "plugins": {
+    "httpServiceRateLimit-01": {
+      "file": "plugins/http-service-ratelimit.js",
+      "priority": -10,
+      "data": {
+        "rateLimit": {
+          "local": {
+            "backlog": 2,
+            "requests": 2,
+            "burst": 4,
+            "statTimeWindow": 60,
+            "responseStatusCode": 431,
+            "responseHeadersToAdd": [
+              {
+                "name": "host",
+                "value": "000"
+              },
+              {
+                "name": "test",
+                "value": "bbb"
+              }
+            ]
+          }
+        }
+      },
+      "httpServices_joinRef": [
+        "httpService-01"
+      ]
+    },
+    "httpRouteRateLimit-01": {
+      "file": "plugins/http-route-limit.js",
+      "priority": 5,
+      "data": {
+        "rateLimit": {
+          "local": {
+            "backlog": 2,
+            "requests": 2,
+            "burst": 4,
+            "statTimeWindow": 60,
+            "responseStatusCode": 431,
+            "responseHeadersToAdd": [
+              {
+                "name": "host",
+                "value": "000"
+              },
+              {
+                "name": "test",
+                "value": "bbb"
+              }
+            ]
+          }
+        }
+      },
+      "httpRoutes_joinRef": [
+        "httpRoute-01"
+      ]
+    },
+    "uriRewrite-01": {
+      "file": "plugins/uri-rewrite.js",
+      "data": {
+        "/": "/cluster2/"
+      },
+      "priority": 5,
+      "httpServices_joinRef": [
+        "httpService-01"
+      ],
+      "httpRoutes_joinRef": [
+        "httpRoute-01"
+      ]
+    }
+  },
+  "egresses": {
+    "socks5": {
+      "type": "socks5",
+      "address": "11.11.11.11",
+      "port": 1080,
+      "priority": -10,
+      "endpoints_joinRef": [
+        "endpoint-01"
+      ]
+    },
+    "http2": {
+      "type": "http2tunnel",
+      "address": "11.11.11.11",
+      "port": 8443,
+      "priority": -10,
+      "endpoints_joinRef": [
+        "endpoint-02"
+      ]
+    }
+  },
+  "tlsTerminations": {
+    "tlsTerminations-01": {
+      "secrets_dataRef": "secret-01",
+      "priority": 10,
+      "listeners_joinRef": [
+        "listener-01"
+      ]
+    }
+  },
+  "tlsInitiations": {
+    "tlsInitiations-01": {
+      "secrets_dataRef": "secret-01",
+      "priority": -10,
+      "endpoints_joinRef": [
+        "endpoint-01"
+      ]
+    }
+  },
+  "secrets": {
+    "secret-01": {
+      "commonName": "bookthief.bookthief.cluster.local",
+      "expiration": "2023-03-11 03:37:24",
+      "certChain": "-----BEGIN CERTIFICATE-----\nMIIETDCCAzSgAwIBAgIQY6tIsH+lVawHzh7CTwiAYDANBgkqhkiG9w0BAQsFADBf\nMQswCQYDVQQGEwJaSDELMAkGA1UEBxMCQ04xHzAdBgNVBAoTFk9wZW4gU2Vydmlj\nZSBNZXNoIEVkZ2UxIjAgBgNVBAMTGW9zbS1jYS5vcGVuc2VydmljZW1lc2guaW8w\nHhcNMjMwMzEwMDMzNzI0WhcNMjMwMzExMDMzNzI0WjBNMR8wHQYDVQQKExZPcGVu\nIFNlcnZpY2UgTWVzaCBFZGdlMSowKAYDVQQDEyFib29rdGhpZWYuYm9va3RoaWVm\nLmNsdXN0ZXIubG9jYWwwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDj\nTockztgoQ4JqBTu4MYzLO7cYmRLSjJuuXsm/Pqhe6vxMrBYoYz02Uynv+p7PGDIn\nopza4TfDTQdODliHOSG1SUly+8vlhWO5IpSPI4Mv86iZADjia7F3o+V1C9nPgY1q\nVfqOtAenVVBzI8lnkh9AB6Xz5Ej/CddJNXV46b2gafASRDTfFAHGlucZWfqKDzUz\nWx+5zIkEVgR6kfNMscAgw0pnERK3Blk5ShaEOqJISiqc4QkDP3kzcFmWUgCUZbEd\nCz73C7RD/lDJ3vwxfzlmH1geB0SHbj0pJAEc+iurLoNHoEyXVM4qfi6R72oGVxJ6\n+TUuwq2Uwyi84qjcfnfLAgMBAAGjggEUMIIBEDAOBgNVHQ8BAf8EBAMCBaAwHQYD\nVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAwHwYDVR0j\nBBgwFoAUZt1og+0Ri5lSMhl/p2nIkKvq8P0wga8GA1UdEQSBpzCBpIIhYm9va3Ro\naWVmLmJvb2t0aGllZi5jbHVzdGVyLmxvY2Fsgglib29rdGhpZWaCE2Jvb2t0aGll\nZi5ib29rdGhpZWaCF2Jvb2t0aGllZi5ib29rdGhpZWYuc3Zjgh9ib29rdGhpZWYu\nYm9va3RoaWVmLnN2Yy5jbHVzdGVygiVib29rdGhpZWYuYm9va3RoaWVmLnN2Yy5j\nbHVzdGVyLmxvY2FsMA0GCSqGSIb3DQEBCwUAA4IBAQCN0uxrH6ErCOBR228/TkS0\nH6pA2gfnq1fzTclotDY7RIpcCXZTswqROd3e2EKT4mS9om6AgQKItYmqPazAxhjU\nVFBiwmd7UDFrfr2jbztOsQuNXnR7Nk079MA02tiPRGpb2e7RoKSbkM+dpJkdyhrN\nClEunkPu5upDGdqTf0Ufgd9vIdizxE/SZunEd3rncWo8gkrxkT9ifMFaEghNJIJ+\nCONPRhwJ4awTeDa6LT35FsjXx5pA26luW2FmAeJZAmPbKy+7KdHcxooiqDezs+nj\nHr27cBRKSU64aiSyOWWG/sx55hyfzDrG94FUPwIIacfwM/qyuhkog0xMLKPkBPTm\n-----END CERTIFICATE-----\n",
+      "privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDjTockztgoQ4Jq\nBTu4MYzLO7cYmRLSjJuuXsm/Pqhe6vxMrBYoYz02Uynv+p7PGDInopza4TfDTQdO\nDliHOSG1SUly+8vlhWO5IpSPI4Mv86iZADjia7F3o+V1C9nPgY1qVfqOtAenVVBz\nI8lnkh9AB6Xz5Ej/CddJNXV46b2gafASRDTfFAHGlucZWfqKDzUzWx+5zIkEVgR6\nkfNMscAgw0pnERK3Blk5ShaEOqJISiqc4QkDP3kzcFmWUgCUZbEdCz73C7RD/lDJ\n3vwxfzlmH1geB0SHbj0pJAEc+iurLoNHoEyXVM4qfi6R72oGVxJ6+TUuwq2Uwyi8\n4qjcfnfLAgMBAAECggEBALo4bHlYSDh8TkyDaxCU747UpkUtqwD5ltV87HWUZKYW\nh4pc9W4zF0P5UAM95HsvjG9yRmT/XArRgWmOUTK/OIFnwBfGd53a8P8MeH7oDiLr\n0LVAPFoq9mJY0LRaeCALOArk03ezwA1z1IvvxqHmUVnIqkmsPa1Lp6dfd5UOkX7n\nn65WyCIVWdke+1LMv1TGz23eUq9oe3bz4D5BTJ5hMwQUH26sfMDAdAkhsSOyqnkG\ngfEFyWng3BEwYbQAE6RoAFpImS3TcyNcLT0Ma1lqhbSHEvErGxNT8muvKoGTfOt/\n90Ufqe/boq+9nwt+dhY2+FbNshYMOd0DxT/IbDxQihECgYEA/igsxET7vIf4bFJD\nedz+XVWNWR/daJ/Ip4lZr8Sy88SNzBwNSi5QfduNRnlqoILDuQBWfEdQvZ/yidrJ\nz1dvN9EzlBpk/sA4ki3LMwU1N/i1/aqcBWLFuCVRItJjNK0cN4FLWhevTtmJ3pRm\nDqpkP8ew9kt/nZx8IP730hy+SAMCgYEA5PSB6sh/6wp2Y099v7KBZDb6AZBgz6dc\nMbqiAnfikJ7LM7yEmpGydoxbFzjjCkFf7E8uakW90CPw/j4oaME0pS4HOeyp/B7c\nR7kBq5LqqeBugCQUKsRxt5TjV0f9vLouG+YI5GgYL06WgxuZ7rneacuajnyCcbQi\ndU71GrV8epkCgYBXjR9evSS63VwGdJAp+qblIAOBICj1UZWdoQL0OZ4ruxndpgwt\n8aZotKkGDe1dPa6OnD8usKJvsBmsw2Ghu0zkvXw3GKCR4UWblYraGIEsttB6gbsd\nX9kchj5c8HycOMXvmOqMLnyFfQqxUg2WH7xI/FFJhth/Qti/xRU5nA0wYQKBgDSD\nwKjRhEWtCKqOuREXKIaL9ZwWOZ5njMX7QN3AEb+KLKGZQ/EQKhb26o3RBoJ7rDzP\njJ3jkT4EgGpQZ4RfjGu2uwGWPwcNLQlmbfOkpx5/09igbd/BXzP0epCyeoinS5wq\njy+UkLeJFwzLb+tJxrINeU3lUSYzYxP1IFMX/Y1BAoGAM2BnN2iyD2b2SUGHQiL1\n4zyjRUeVOFIyZSqVi1Qdcd5dgz0e0s6nvYppppGs8lLhPoN4aXSSW1pdSlczO0ln\nFd0QZ7OtvrxaPMiFAG4DWBXH2QviqyM+gw717zWQiY7iZh3SfcVnHd3FZ6oQ6K0K\nAcedM7HuhVIiApSA4gD15e4=\n-----END PRIVATE KEY-----\n",
+      "trustedCA": [
+        "-----BEGIN CERTIFICATE-----\nMIIDijCCAnKgAwIBAgIQSG6khJJLNafB0pC465JNRjANBgkqhkiG9w0BAQsFADBf\nMQswCQYDVQQGEwJaSDELMAkGA1UEBxMCQ04xHzAdBgNVBAoTFk9wZW4gU2Vydmlj\nZSBNZXNoIEVkZ2UxIjAgBgNVBAMTGW9zbS1jYS5vcGVuc2VydmljZW1lc2guaW8w\nHhcNMjMwMzA5MDMzNzE2WhcNMzMwMzA2MDMzNzE2WjBfMQswCQYDVQQGEwJaSDEL\nMAkGA1UEBxMCQ04xHzAdBgNVBAoTFk9wZW4gU2VydmljZSBNZXNoIEVkZ2UxIjAg\nBgNVBAMTGW9zbS1jYS5vcGVuc2VydmljZW1lc2guaW8wggEiMA0GCSqGSIb3DQEB\nAQUAA4IBDwAwggEKAoIBAQCh1onOQcrLqz4QqpytMvAJEfRd0JuyrXVIEFC6izzm\nvE9V5UAkgktXjSK+6QrsLEhkyZ3wlotiaVyQaB4EpEZpo9pWrfn/atqMisM1UP9M\ngyXA+ucH8kDzsxbLDwOM+XDKd2hn3XQbTSCH8LnnBsiNkDfT1hPKgEkDSe2zChvG\nduzjm6G70KM8x3RfBURsbxI2YhgO/6QG0PEshX4s1Zxtf57OmymZaPdBFHx/kuH8\n69SgB8jOFz+haRFgvBCyntGRpNjYs7V3tuOBrgei7G7xU6bcZq8cLGaAOxppVCUd\nslloGgyWEqgr8DYfMzkw2NPBE/m2fVV7J9DlbME+xhizAgMBAAGjQjBAMA4GA1Ud\nDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBRm3WiD7RGLmVIy\nGX+naciQq+rw/TANBgkqhkiG9w0BAQsFAAOCAQEACYjqZ+R0oys6LJIZIP80y0wi\nekIljck+2VPN+z53H5hA+QA2ZPTC8mD0HUF9gmEVn9+aRaKel5KTr00u2L4RyrSo\n6P4QeHT71XTigj8JIbhlcZNq7SCqZkB4+ujQk0R4LHtUqb0HP1UYJ3aoPnL5sqWG\nwJyy+PA4UTaGZ7yBZZ/Id5uouIvllYYox5JvSVuK9nU0VREV1+LSAFZcitSa0Gd7\nP+rsfk5uE93l0bOL4f40TAWCfGSoKA9ydzGvS4EkffetQ5rqhIAhrRRt3WfvKqnp\n+B+YgLonvQh+5HSTOAm9LTyB/6TfzXWvAMS9KRWdBmOQYyi9ZFXdarkS9rMM+A==\n-----END CERTIFICATE-----\n"
+      ]
+    }
+  }
+}
