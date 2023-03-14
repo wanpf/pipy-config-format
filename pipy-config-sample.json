@@ -115,7 +115,9 @@
         "httpPolicy-01"
       ],
       "httpRoutes_joinRef": [
-        "httpRoute-01"
+        "httpRoute-01",
+        "httpRoute-02",
+        "httpRoute-03"
       ],
       "httpServices_joinRef": [
         "httpService-01"
