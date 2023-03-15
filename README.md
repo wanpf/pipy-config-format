@@ -23,4 +23,6 @@ c）主要有3种数据类型：
 比如： listeners_joinRef, 在 pipeline context上存在全局变量: \_\_listener    
 这些以 "\_\_" 开头的全局变量，用于 module 之间的数据交互。   
 
+## 3. pipy通用配置格式（示意图）
+![pipy-config](https://raw.githubusercontent.com/wanpf/pipy-config-format/main/pipy-config-format.png)  
 
