@@ -1,87 +1,98 @@
 {
   "listeners": {
-    "listener-01": {
-      "port": 443,
-      "addresses": [
-        "1.1.1.1",
-        "2.2.2.2"
-      ],
-      "protocol": "Can be tcp or udp. Default is tcp",
-      "appProtocol": "http|grpc|mysql",
-      "maxBufferSize": "Maximum socket buffer size when using TCP. Default is 128KB.",
-      "maxPacketSize": "Maximum packet size when using UDP. Default is 16KB.",
-      "maxConnections": "Maximum number of concurrent connections. Default is -1, which means unlimited",
-      "readTimeout": "Timeout duration for reading",
-      "writeTimeout": "Timeout duration for writing",
-      "idleTimeout": "Time in seconds before connection is closed due to no active reading or writing",
-      "transparent": "Set to true to enable transparent proxy mode",
-      "masquerade": "Set to true to change the source address of responding UDP packets to the original destination",
-      "reusePort": "When this flag is set to true, listeners set the SO_REUSEPORT socket option and create one socket for each worker thread. ",
-      "tcpBacklog": "The maximum length a tcp listener’s pending connections queue can grow to. If no value is provided net.core.somaxconn will be used on Linux and 128 otherwise."
+    "inbound": {
+      "port": 15003,
+      "addresses": [],
+      "protocol": "tcp",
+      "appProtocol": "http",
+      "transparent": "true"
+    },
+    "outbound": {
+      "port": 15001,
+      "addresses": [],
+      "protocol": "tcp",
+      "appProtocol": "tcp",
+      "transparent": "true"
     }
   },
   "tupleMatching": {
-    "entryTuple-01": {
-      "source": [
-        {
-          "ipRanges": "1.1.1.1/8",
-          "port": 8000
-        }
-      ],
+    "inbound-tupleMatching": {
       "destination": [
         {
-          "ipRanges": "1.1.1.1/8",
-          "port": 80
-        },
-        {
-          "ipRanges": "1.1.1.2/8",
-          "port": 80
+          "ipRanges": "0.0.0.0/0",
+          "port": 14001
         }
       ],
       "listeners_joinRefPriority": 50,
       "listeners_joinRef": [
-        "listener-01"
+        "inbound"
       ]
     },
-    "entryTuple-egress-02": {
-      "listeners_joinRefPriority": 50,
+    "outbound-tupleMatching-01": {
+      "destination": [
+        {
+          "ipRanges": "1.1.1.1/32",
+          "port": 14001
+        }
+      ],
       "listeners_joinRef": [
-        "listener-01"
+        "outbound"
+      ]
+    },
+    "outbound-tupleMatching-02": {
+      "destination": [
+        {
+          "ipRanges": "2.2.2.2/32",
+          "port": 14001
+        }
+      ],
+      "listeners_joinRef": [
+        "outbound"
+      ]
+    },
+    "outbound-tupleMatching-egress": {
+      "listeners_joinRef": [
+        "outbound"
       ]
     }
   },
   "httpServices": {
-    "httpService-01": {
+    "inbound-httpServices": {
       "virtualHost": [
-        "a.a.a.a",
-        "b.b.b.b"
+        "bookstore-v1.bookstore",
+        "bookstore-v1.bookstore.svc",
+        "bookstore-v1.bookstore.svc.cluster",
+        "bookstore-v1.bookstore.svc.cluster.local"
       ],
-      "tupleMatching_joinRef": [
-        "entryTuple-01"
-      ],
-      "listeners_joinRef": [
-        "listener-01"
+      "tlsTerminations_joinRef": [
+        "inbound-tlsTerminations"
       ]
     }
   },
   "httpRoutes": {
-    "httpRoute-01": {
+    "inbound-httpRoutes-01": {
+      "path": "/login",
+      "type": "Exact",
+      "headers": null,
+      "methods": null,
+      "allowedServices": null,
+      "httpServices_joinRef": [
+        "inbound-httpServices"
+      ]
+    },
+    "inbound-httpRoutes-02": {
       "path": ".*",
       "type": "Regex",
       "headers": null,
       "methods": null,
       "allowedServices": null,
-      "clusters": {
-        "cluster-01": 100,
-        "cluster-02": 100
-      },
       "httpServices_joinRef": [
-        "httpService-01"
+        "inbound-httpServices"
       ]
     }
   },
   "httpPolicies": {
-    "httpPolicy-01": {
+    "inbound-httpPolicies-01": {
       "retryPolicy": {
         "retryOn": "5xx",
         "perTryTimeout": 5,
@@ -101,78 +112,107 @@
         "degradedResponseContent": "Coming soon .... 0"
       },
       "httpRoutes_joinRef": [
-        "httpRoute-01"
+        "inbound-httpRoutes-01"
       ]
     }
   },
   "clusters": {
-    "cluster-01": {
-      "lbPolicy": "rr",
-      "appProtocol": "http|grpc|mysql",
+    "inbound-cluster": {
+      "lbPolicy": "RoundRobin",
       "endpoints_joinRefPriority": -100,
       "endpoints_joinRef": [
-        "endpoint-01",
-        "endpoint-02"
+        "inbound-endpoint"
       ],
       "endpoints": {
-        "endpoint-01": 50,
-        "endpoint-02": 50
+        "inbound-endpoint": 100
       },
+      "httpPolicies_joinRef": [
+        "inbound-httpPolicies-01"
+      ],
       "httpRoutes_joinRef": [
-        "httpRoute-01",
-        "httpRoute-02",
-        "httpRoute-03"
-      ],
-      "httpServices_joinRef": [
-        "httpService-01"
-      ],
-      "tupleMatching_joinRef": [
-        "entryTuple-01"
-      ],
-      "listeners_joinRef": [
-        "listener-01"
+        "inbound-httpRoutes-02"
       ]
     },
-    "cluster-egress-01": {
-      "lbPolicy": "rr",
-      "appProtocol": "http|grpc|mysql",
+    "outbound-cluster-01": {
+      "lbPolicy": "RoundRobin",
       "endpoints_joinRefPriority": -100,
       "endpoints_joinRef": [
-        "endpoint-egress-01"
+        "outbound-tupleMatching-01-endpoint-01",
+        "outbound-tupleMatching-01-endpoint-02"
       ],
       "endpoints": {
-        "endpoint-egress-01": 100
+        "outbound-tupleMatching-01-endpoint-01": 50,
+        "outbound-tupleMatching-01-endpoint-02": 50
       },
       "tupleMatching_joinRef": [
-        "entryTuple-egress-02"
+        "outbound-tupleMatching-01"
+      ]
+    },
+    "outbound-cluster-02": {
+      "lbPolicy": "RoundRobin",
+      "endpoints_joinRefPriority": -100,
+      "endpoints_joinRef": [
+        "outbound-tupleMatching-02-endpoint-01",
+        "outbound-tupleMatching-02-endpoint-02"
+      ],
+      "endpoints": {
+        "outbound-tupleMatching-02-endpoint-01": 50,
+        "outbound-tupleMatching-02-endpoint-02": 50
+      },
+      "tupleMatching_joinRef": [
+        "outbound-tupleMatching-02"
+      ]
+    },
+    "outbound-cluster-egress": {
+      "lbPolicy": "RoundRobin",
+      "endpoints_joinRefPriority": -100,
+      "endpoints_joinRef": [
+        "outbound-tupleMatching-egress-endpoint"
+      ],
+      "endpoints": {
+        "outbound-tupleMatching-egress-endpoint": 100
+      },
+      "tupleMatching_joinRef": [
+        "outbound-tupleMatching-egress"
       ]
     }
   },
   "endpoints": {
-    "endpoint-01": {
-      "address": "1.1.1.1",
-      "port": 443,
-      "protocol": "Can be tcp or udp. Default is tcp",
-      "bufferLimit": "Maximum size of data allowed to stay in buffer due to slow outbound bandwidth. Can be a number in bytes or a string with a unit suffix such as 'k', 'm', 'g' and 't'.",
-      "retryCount": "How many times it should retry connection after a failure, or -1 for the infinite retries. Defaults to 0.",
-      "retryDelay": "Time duration to wait between connection retries. Defaults to 0.",
-      "connectTimeout": "Timeout while connecting. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
-      "readTimeout": "Timeout while reading. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
-      "writeTimeout": "Timeout while writing. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
-      "idleTimeout": "Duration before connection is closed due to no active reading or writing. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to 1 minute."
+    "inbound-endpoint": {
+      "address": "127.0.0.1",
+      "port": 14001,
+      "protocol": "tcp",
+      "appProtocol": "http"
     },
-    "endpoint-egress-01": {
-      "protocol": "Can be tcp or udp. Default is tcp",
-      "bufferLimit": "Maximum size of data allowed to stay in buffer due to slow outbound bandwidth. Can be a number in bytes or a string with a unit suffix such as 'k', 'm', 'g' and 't'.",
-      "retryCount": "How many times it should retry connection after a failure, or -1 for the infinite retries. Defaults to 0.",
-      "retryDelay": "Time duration to wait between connection retries. Defaults to 0.",
-      "connectTimeout": "Timeout while connecting. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
-      "readTimeout": "Timeout while reading. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
-      "writeTimeout": "Timeout while writing. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to no timeout.",
-      "idleTimeout": "Duration before connection is closed due to no active reading or writing. Can be a number in seconds or a string with one of the time unit suffixes such as s, m or h. Defaults to 1 minute."
+    "outbound-tupleMatching-01-endpoint-01": {
+      "address": "1.1.1.1",
+      "port": 14001,
+      "protocol": "tcp",
+      "appProtocol": "tcp"
+    },
+    "outbound-tupleMatching-01-endpoint-02": {
+      "address": "2.2.2.2",
+      "port": 14001,
+      "protocol": "tcp",
+      "appProtocol": "tcp"
+    },
+    "outbound-tupleMatching-02-endpoint-01": {
+      "address": "3.3.3.3",
+      "port": 14001,
+      "protocol": "tcp",
+      "appProtocol": "tcp"
+    },
+    "outbound-tupleMatching-02-endpoint-02": {
+      "address": "4.4.4.4",
+      "port": 14001,
+      "protocol": "tcp",
+      "appProtocol": "tcp"
+    },
+    "outbound-tupleMatching-egress-endpoint": {
+      "protocol": "tcp"
     }
   },
-  "plugins": {
+  "httpServiceRateLimit": {
     "httpServiceRateLimit-01": {
       "file": "plugins/http-service-ratelimit.js",
       "data": {
@@ -196,10 +236,13 @@
           }
         }
       },
+      "httpServices_joinRefPriority": 50,
       "httpServices_joinRef": [
-        "httpService-01"
+        "inbound-httpServices"
       ]
-    },
+    }
+  },
+  "httpRouteRateLimit": {
     "httpRouteRateLimit-01": {
       "file": "plugins/http-route-limit.js",
       "data": {
@@ -223,56 +266,36 @@
           }
         }
       },
+      "httpRoutes_joinRefPriority": 50,
       "httpRoutes_joinRef": [
-        "httpRoute-01"
-      ]
-    },
-    "uriRewrite-01": {
-      "file": "plugins/uri-rewrite.js",
-      "data": {
-        "/": "/cluster2/"
-      },
-      "httpServices_joinRef": [
-        "httpService-01"
-      ],
-      "httpRoutes_joinRef": [
-        "httpRoute-01"
+        "inbound-httpRoutes-02"
       ]
     }
   },
   "egresses": {
-    "socks5": {
-      "type": "socks5",
-      "address": "11.11.11.11",
-      "port": 1080,
-      "endpoints_joinRefPriority": -100,
-      "endpoints_joinRef": [
-        "endpoint-01"
-      ]
-    },
     "http2": {
       "type": "http2tunnel",
-      "address": "11.11.11.11",
+      "address": "10.10.10.10",
       "port": 8443,
-      "endpoints_joinRefPriority": -100,
-      "endpoints_joinRef": [
-        "endpoint-02"
+      "clusters_joinRef": [
+        "outbound-cluster-egress"
       ]
     }
   },
   "tlsTerminations": {
-    "tlsTerminations-01": {
+    "inbound-tlsTerminations": {
       "secrets_dataRef": "secret-01",
-      "listeners_joinRef": [
-        "listener-01"
+      "tupleMatching_joinRef": [
+        "inbound-tupleMatching"
       ]
     }
   },
   "tlsInitiations": {
-    "tlsInitiations-01": {
+    "outbound-tlsInitiations": {
       "secrets_dataRef": "secret-01",
       "clusters_joinRef": [
-        "cluster-01"
+        "outbound-cluster-01",
+        "outbound-cluster-02"
       ]
     }
   },
