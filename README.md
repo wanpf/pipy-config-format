@@ -26,3 +26,33 @@ _joinRef 指向的是数组([])
 ## 3. pipy通用配置格式（示意图）
 ![pipy-config](https://raw.githubusercontent.com/wanpf/pipy-config-format/main/pipy-config-format.png)  
 
+## 4. 配置格式预处理  
+config.json 是演示配置文件，运行如下命令可以对config.json进行预处理，自动生成 pipy 调用链。  
+bin/pipy main.js  
+```bash
+[listeners chain] {
+    "inbound": [
+        "tupleMatching",
+        "tlsTerminations",
+        "httpServices",
+        "httpServiceRateLimit",
+        "httpRoutes",
+        "httpRouteRateLimit",
+        "httpPolicies",
+        "clusters",
+        "endpoints"
+    ],
+    "outbound": [
+        "tupleMatching",
+        "clusters",
+        "egresses",
+        "tlsInitiations",
+        "endpoints"
+    ]
+}
+```
+## 5. 讨论
+以上配置文件，采用扁平结构保存数据，使用 _joinRef 和 _dataRef 来关联各模块、数据。  
+可以用来表示 service mesh、ingress、Gateway API 等多种场景下的配置。  
+类似数据库中的表通过主键、外健来表达关系。  
+由于数据格式没有嵌套层级，对于阅读配置文件增加了难度。  
