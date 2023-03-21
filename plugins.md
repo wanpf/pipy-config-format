@@ -35,4 +35,14 @@ config.json 里面的每一个 module 都对应一个 js 文件
 *name* ：是 httpServices 模块所使用输入数据，对应的配置项名称。  
 *output* ：是 httpServices 模块的输出数据，具体的输出数据项和业务相关，可以灵活定义。  
 
+## 2. 模块之间的数据交互/对接  
+以这个示意图为例   
+![pipy-config](https://raw.githubusercontent.com/wanpf/pipy-config-format/main/pipy-config-format.png)  
+每一个模块都可以获取到它的前置模块的 输入(input)、输出(output) 数据  
+比如： tlsTerminations 模块，就可以获取到它的前置模块 listerner、tupleMatching 的输入和输出。  
+对应的全局变量名是 \_\_listerner 和 \_\_tupleMatching 
 
+## 3. 其他  
+a）数据项名称命名，注意单复数形式要统一。比如： listener, listeners 的使用场景   
+b）变量命名用首字母小写的驼峰形式，还是 下划线 “\_” 连接方式  
+c)  js 里面变量的命名规范参照 pipy文档  
